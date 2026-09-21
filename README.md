@@ -26,6 +26,11 @@ Java 25. Nothing else at runtime.
 Plain Ant. `ant jar` builds `target/iroiro.jar` without any dependency resolution; `ant test` also
 fetches the test libraries with Ivy (expected in `~/.ant/lib`) and runs the tests.
 
+## Test data
+
+The tests are synthetic except for one photograph, "Seroja before Landfall", a work of NASA in the public
+domain, taken from [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Seroja_before_Landfall.png).
+
 ## License
 
 Apache License 2.0. Copyright 2026 takahashikzn

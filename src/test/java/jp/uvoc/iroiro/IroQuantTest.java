@@ -42,8 +42,9 @@ import static org.assertj.core.api.Assertions.*;
  * <p>
  * Every case here is a regression guard for something that actually went wrong once. The numeric
  * thresholds sit a little below the measured values, so <b>before loosening one, find out why the
- * output got worse.</b> Everything here is synthetic, so behavior that only real photographs
- * expose -- an embedded color profile, say -- needs checking on real material as well.
+ * output got worse.</b> Apart from one public-domain photograph, everything here is synthetic, so
+ * behavior that only real photographs expose -- an embedded color profile, say -- needs checking
+ * on real material as well.
  *
  * @author takahashikzn
  */
@@ -399,6 +400,39 @@ public class IroQuantTest {
             ImageIO.write(img, "png", bo);
             assertThat(IroQuant.encode(img).length).isLessThan(bo.size());
         }
+    }
+
+    /**
+     * A real photograph, not a synthetic one: a truecolor PNG of cloud and sea must come out much
+     * smaller as a palette PNG and still close to the original.
+     * <p>
+     * The fixture is "Seroja before Landfall" (NASA Worldview), a work of NASA in the
+     * public domain, taken unchanged from Wikimedia Commons on 2026-09-21:
+     * https://commons.wikimedia.org/wiki/File:Seroja_before_Landfall.png (777x465, 8-bit RGB,
+     * 629,968 bytes, SHA-1 295aa2ce5fb830e70adb737503bc0dcaaf5eec5b).
+     * <p>
+     * Measured with the default options: 260,135 bytes (41%), SSIM 0.9953, Oklab error mean 0.51 and
+     * p95 1.19. The thresholds sit a little below that.
+     */
+    @Test
+    public void realPhotographShrinks() throws Exception {
+
+        final byte[] png;
+        try (final var in = IroQuantTest.class.getResourceAsStream("IroQuantTest-cyclone.png")) {
+            assertThat(in).as("fixture").isNotNull();
+            png = in.readAllBytes();
+        }
+        final var src = IroQuant.toSRGB(decode(png), png);
+
+        final var out = IroQuant.encode(src);
+        assertThat(out[25]).as("written as a palette").isEqualTo((byte) 3);
+        assertThat(out.length).as("reduced size").isLessThan(png.length * 45 / 100);
+
+        final var reduced = decode(out);
+        assertThat(IroMeasure.ssim(src, reduced)).as("SSIM").isGreaterThan(0.99);
+        final var error = IroMeasure.colorError(src, reduced, IroMeasure.Background.BLACK);
+        assertThat(error.mean()).as("mean color error").isLessThan(0.6);
+        assertThat(error.p95()).as("p95 color error").isLessThan(1.4);
     }
 
     // ------------------------------------------------------------------- fixtures
