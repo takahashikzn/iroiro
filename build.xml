@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Copyright 2026 takahashikzn
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<!--
+  Plain Ant. The library depends on the JDK only, so "jar" needs no dependency resolution;
+  Ivy (expected in ~/.ant/lib) is only used to fetch the test libraries.
+
+  @author takahashikzn
+-->
+<project name="iroiro" default="test" basedir=".">
+
+  <property name="release" value="25" />
+  <property name="src.main" location="src/main/java" />
+  <property name="src.test" location="src/test/java" />
+  <property name="target" location="target" />
+  <property name="classes.main" location="${target}/classes" />
+  <property name="classes.test" location="${target}/test-classes" />
+  <property name="lib.dir" location="${target}/lib" />
+  <property name="jar.file" location="${target}/iroiro.jar" />
+
+  <target name="clean" description="delete the build output">
+    <delete dir="${target}" />
+  </target>
+
+  <target name="compile" description="compile the library">
+    <mkdir dir="${classes.main}" />
+    <javac srcdir="${src.main}" destdir="${classes.main}" release="${release}" encoding="UTF-8" debug="true" includeantruntime="false">
+      <compilerarg value="-Xlint:all" />
+    </javac>
+  </target>
+
+  <target name="jar" depends="clean, compile" description="build target/iroiro.jar">
+    <jar destfile="${jar.file}" basedir="${classes.main}">
+      <metainf file="LICENSE" />
+    </jar>
+  </target>
+
+  <target name="setup" description="fetch the test libraries">
+    <taskdef name="ivy-configure" classname="org.apache.ivy.ant.IvyConfigure" />
+    <taskdef name="ivy-resolve" classname="org.apache.ivy.ant.IvyResolve" />
+    <taskdef name="ivy-retrieve" classname="org.apache.ivy.ant.IvyRetrieve" />
+
+    <ivy-configure file="ivysettings.xml" />
+    <ivy-resolve file="ivy.xml" />
+    <delete dir="${lib.dir}" />
+    <ivy-retrieve conf="*" pattern="${lib.dir}/[conf]/[artifact]-[revision].[ext]" />
+  </target>
+
+  <path id="lib.test">
+    <fileset dir="${lib.dir}" includes="**/*.jar" erroronmissingdir="false" />
+  </path>
+
+  <target name="compile-test" depends="compile, setup">
+    <mkdir dir="${classes.test}" />
+    <javac srcdir="${src.test}" destdir="${classes.test}" release="${release}" encoding="UTF-8" debug="true" includeantruntime="false">
+      <classpath>
+        <pathelement location="${classes.main}" />
+        <path refid="lib.test" />
+      </classpath>
+    </javac>
+    <copy todir="${classes.test}">
+      <fileset dir="${src.test}" excludes="**/*.java" />
+    </copy>
+  </target>
+
+  <target name="test" depends="jar, compile-test" description="build the jar and run the tests">
+    <mkdir dir="${target}/test-result" />
+    <junit printsummary="true" fork="true" forkmode="once" failureproperty="test.failed">
+      <classpath>
+        <pathelement location="${jar.file}" />
+        <pathelement location="${classes.test}" />
+        <path refid="lib.test" />
+      </classpath>
+      <formatter type="plain" usefile="false" />
+      <batchtest todir="${target}/test-result">
+        <fileset dir="${classes.test}" includes="**/*Test.class" />
+      </batchtest>
+    </junit>
+    <fail if="test.failed" message="tests failed" />
+  </target>
+
+  <target name="javadoc" depends="compile" description="API documents in target/api">
+    <javadoc sourcepath="${src.main}" destdir="${target}/api" encoding="UTF-8" docencoding="UTF-8" source="${release}"
+      windowtitle="iroiro" doctitle="iroiro">
+      <link href="https://docs.oracle.com/en/java/javase/25/docs/api/" />
+    </javadoc>
+  </target>
+
+</project>
