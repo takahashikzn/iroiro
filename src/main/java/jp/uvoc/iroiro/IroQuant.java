@@ -484,10 +484,10 @@ public final class IroQuant {
     /** sr = sum(r * a * w), sa = sum(a * w), cnt = sum(w). */
     private static int color(final double sr, final double sg, final double sb, final double sa, final double cnt) {
 
-        final int a = (cnt <= 0) ? 0 : clamp(round(sa / cnt));
+        final int a = cnt <= 0 ? 0 : Math.clamp(0, round(sa / cnt), 255);
         if (a == 0 || sa <= 0) return 0;
 
-        return a << 24 | clamp(round(sr / sa)) << 16 | clamp(round(sg / sa)) << 8 | clamp(round(sb / sa));
+        return a << 24 | Math.clamp(0, round(sr / sa), 255) << 16 | Math.clamp(0, round(sg / sa), 255) << 8 | Math.clamp(0, round(sb / sa), 255);
     }
 
     /**
@@ -650,7 +650,7 @@ public final class IroQuant {
     }
 
     private static int bin(final double value, final double min, final double scale) {
-        return clamp((int) ((value - min) * scale));
+        return Math.clamp(0, (int) ((value - min) * scale), 255);
     }
 
     /** Stable partition using the same bins as the gain calculation. */
@@ -1234,6 +1234,4 @@ public final class IroQuant {
     }
 
     private static int round(final double x) { return (int) (x + 0.5); }
-
-    private static int clamp(final int x) { return (x < 0) ? 0 : (255 < x) ? 255 : x; }
 }
