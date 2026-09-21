@@ -79,10 +79,8 @@ public final class IroQuant {
      * @param dither Floyd-Steinberg strength, 0 to 1, 0 being off. Raising {@code kmeans} shrinks
      * the <em>size</em> of the error but not the way it pools into bands across a smooth gradient,
      * which is what the eye picks up. Diffusing the error attacks that directly, at the cost of a
-     * noticeably larger file -- the fine noise it trades the bands for does not deflate well.
-     * Measured on the material this was tuned on, it made every metric worse and looked worse too,
-     * so it stays off -- but that was before the error moved into premultiplied space, so measure
-     * again before relying on it. The option is here because the trade is real for other material.
+     * noticeably larger file -- the fine noise it trades the bands for does not deflate well. Off
+     * by default for that reason; worth it where the bands show more than the bytes matter.
      * @param deflate zlib level, 1 to 9; see {@link #DEFLATE}. Raise it when the bytes matter more
      * than the wait -- when what gets delivered is the file itself rather than a rendering of it.
      * @param parallel split large images' independent passes across the shared image pool. The result

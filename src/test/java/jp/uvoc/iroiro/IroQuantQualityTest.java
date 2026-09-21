@@ -50,11 +50,11 @@ public class IroQuantQualityTest {
                 final int d = (px[i] >>> shift & 255) - (out.getRGB(i, 0) >>> shift & 255);
                 sse += d * d;
             }
-        // The red cut has SSE 6852 after rounding; the old green cut had SSE 10310.
+        // After rounding, the red cut has SSE 6852 and the green cut 10310.
         assertThat(sse).isLessThan(7000);
     }
 
-    /** Premultiplied rounding used to collapse all 64 input colors into one coordinate. */
+    /** At alpha 1, rounding the premultiplied values would put all 64 colors on one coordinate. */
     @Test
     public void lowAlphaColorsKeepFractionalPrecision() throws Exception {
         final var px = new int[64];
@@ -82,7 +82,7 @@ public class IroQuantQualityTest {
         assertThat(bytes).isEqualTo(IroQuant.encode(px, 512, px.length / 512, o.parallel(false)));
     }
 
-    /** An almost-zero diffusion strength must not introduce the old cache's 5-bit quantization. */
+    /** A near-zero diffusion strength must not merge nearby colors in the color lookup. */
     @Test
     public void ditherCacheDoesNotMergeNearbyPaletteColors() throws Exception {
         final var px = new int[120];
@@ -163,7 +163,7 @@ public class IroQuantQualityTest {
             }
     }
 
-    /** The metric must catch a chroma error even when the old integer grayscale values match. */
+    /** The metric must catch a chroma error even when the integer grayscale values match. */
     @Test
     public void colorMetricDetectsChromaAndIgnoresHiddenRgb() {
         final var red = fromPixels(new int[] { 0xFFFF0000 }, 1, 1);

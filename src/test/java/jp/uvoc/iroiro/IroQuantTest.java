@@ -40,11 +40,10 @@ import static org.assertj.core.api.Assertions.*;
 /**
  * Holds {@link IroQuant} to what it was measured to do.
  * <p>
- * Every case here is a regression guard for something that actually went wrong once. The numeric
- * thresholds sit a little below the measured values, so <b>before loosening one, find out why the
- * output got worse.</b> Apart from one public-domain photograph, everything here is synthetic, so
- * behavior that only real photographs expose -- an embedded color profile, say -- needs checking
- * on real material as well.
+ * The numeric thresholds sit a little below the measured values, so <b>before loosening one, find
+ * out why the output got worse.</b> Apart from one public-domain photograph, everything here is
+ * synthetic, so behavior that only real photographs expose -- an embedded color profile, say --
+ * needs checking on real material as well.
  *
  * @author takahashikzn
  */
@@ -235,8 +234,8 @@ public class IroQuantTest {
     // -------------------------------------------------------------------- limits
 
     /**
-     * {@link IroQuant.Opts} is public, so a caller can reach every one of these. Each was a way to get
-     * silently wrong output rather than an error: past 256 the palette index wraps and the extra
+     * {@link IroQuant.Opts} is public, so a caller can reach every one of these. Let through, each
+     * gives silently wrong output rather than an error: past 256 the palette index wraps and the extra
      * colors become color 0, and past {@link IroQuant.Opts#MAX_IMPORTANCE} the per-pixel weight
      * overflows its byte and the histogram counts go negative.
      */

@@ -30,8 +30,7 @@ public final class IroHalftone {
 
     private IroHalftone() { }
 
-    /** Lower case for compatibility: existing callers depend on these names. */
-    public enum Algorithm { bayer, clustered, floyd_steinberg }
+    public enum Algorithm { BAYER, CLUSTERED, FLOYD_STEINBERG }
 
     private static final int WHITE = 0xFFFFFF;
 
@@ -46,9 +45,9 @@ public final class IroHalftone {
         final var out = new BufferedImage(gray.getWidth(), gray.getHeight(), BufferedImage.TYPE_BYTE_BINARY);
 
         switch (algo) {
-            case bayer -> bayer8(gray, out);
-            case clustered -> clustered8(gray, out);
-            case floyd_steinberg -> floydSteinberg(gray, out);
+            case BAYER -> bayer8(gray, out);
+            case CLUSTERED -> clustered8(gray, out);
+            case FLOYD_STEINBERG -> floydSteinberg(gray, out);
         }
 
         return out;

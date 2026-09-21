@@ -35,8 +35,8 @@ public class IroAlphaTest {
     }
 
     /**
-     * The tolerance applies to each channel. It used to be a range over the packed RGB integer, where
-     * red dominates: any strong red counted as "near white" and went clear with it.
+     * The tolerance applies to each channel. A range over the packed RGB integer would be dominated by
+     * red: any strong red would count as "near white" and go clear with it.
      */
     @Test
     public void transparentMatchesEachChannelWithinTolerance() {
