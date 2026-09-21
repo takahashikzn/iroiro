@@ -27,7 +27,7 @@ import java.util.Optional;
  * Every read is bounds checked against the array. The input is a file someone else supplied, so a
  * truncated or lying header has to come back as "unknown" rather than as an exception.
  * <p>
- * <b>Depends on the JDK only</b>, like the rest of this package. Builds on Java 25.
+ * <b>Depends on the JDK only</b>, like the rest of this package.
  *
  * @author takahashikzn
  */

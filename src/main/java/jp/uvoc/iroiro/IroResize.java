@@ -43,7 +43,7 @@ import javax.imageio.ImageIO;
  * Alpha is resampled <b>premultiplied</b>, otherwise the color of transparent pixels bleeds into
  * the edges of everything next to them.
  * <p>
- * Large images split the output rows across the same bounded pool as {@link JQuant}; small images
+ * Large images split the output rows across the same bounded pool as {@link IroQuant}; small images
  * run the identical scan immediately on the caller. Depends on the JDK only.
  *
  * @author takahashikzn

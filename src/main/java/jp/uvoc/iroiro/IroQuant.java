@@ -29,7 +29,6 @@ import java.lang.System.Logger;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.zip.Deflater;
-import java.util.zip.Inflater;
 
 
 /**
@@ -57,8 +56,6 @@ import java.util.zip.Inflater;
  * <p>
  * <b>Depends on the JDK only</b>, like the rest of this package; {@link IroMisc} shares bounded image
  * workers with {@link IroResize}. No logging framework, no profiler hooks (wrap the call site instead).
- * <b>Builds on Java 25</b>: {@link Inflater} and {@link Deflater} are closed with try-with-resources,
- * which they allow only from 25.
  *
  * @author takahashikzn
  */
