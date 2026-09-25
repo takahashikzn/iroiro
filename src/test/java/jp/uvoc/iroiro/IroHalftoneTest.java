@@ -37,7 +37,7 @@ public class IroHalftoneTest {
      * per step of 4. A matrix with uneven levels reproduces some tones too light and others too dark.
      */
     @Test
-    @Parameters({ "bayer", "clustered" })
+    @Parameters({ "BAYER", "CLUSTERED" })
     public void screensReproduceEveryLevelEvenly(final Algorithm algo) {
 
         for (int gray = 0; gray < 256; gray++) {

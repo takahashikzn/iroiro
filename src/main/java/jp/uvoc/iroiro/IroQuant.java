@@ -1201,15 +1201,20 @@ public final class IroQuant {
                     final int x0 = Math.max(0, x - 1);
                     final int x1 = Math.min(width - 1, x + 1);
 
-                    int m = Byte.MAX_VALUE;
-                    for (int j = y0; j <= y1; j++) for (int i = x0; i <= x1; i++) m = Math.min(m, src[j * width + i]);
-
-                    ret[y * width + x] = (byte) m;
+                    ret[y * width + x] = erode(src, width, y0, y1, x0, x1);
                 }
             }
         });
 
         return ret;
+    }
+
+    private static byte erode(final byte[] src, final int width, final int y0, final int y1, final int x0, final int x1) {
+        int m = Byte.MAX_VALUE;
+        for (int j = y0; j <= y1; j++)
+            for (int i = x0; i <= x1; i++)
+                m = Math.min(m, src[j * width + i]);
+        return (byte) m;
     }
 
     private static int find(final _Hist h, final int k) {
