@@ -69,6 +69,9 @@ public final class IroMisc {
         static final ForkJoinPool POOL = new ForkJoinPool(PARALLELISM, pool -> {
             final var worker = ForkJoinPool.defaultForkJoinWorkerThreadFactory.newThread(pool);
             worker.setName("iro-worker-" + seq.incrementAndGet());
+            // Workers are started by whichever thread submits work at the time and would otherwise
+            // inherit its priority for good, while they serve every caller.
+            worker.setPriority(Thread.NORM_PRIORITY);
             return worker;
         }, null, false, PARALLELISM, PARALLELISM, 1, pool -> true, 60, TimeUnit.SECONDS);
     }
