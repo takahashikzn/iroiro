@@ -51,8 +51,8 @@ public class IroMiscTest {
             assertThat(to).isEqualTo(17);
             calls.incrementAndGet();
         };
-        scan(true, 17, PARALLEL_MIN - 1, body);
-        scan(false, 17, (long) PARALLEL_MIN * 100, body);
+        scan(true, 17, _parallelMin - 1, body);
+        scan(false, 17, (long) _parallelMin * 100, body);
         assertThat(calls.get()).isEqualTo(2);
     }
 
@@ -77,7 +77,7 @@ public class IroMiscTest {
         final var ranges = new AtomicInteger();
         scan(true, visits.length(), Long.MAX_VALUE, (from, to) -> {
             assertThat(from).isLessThan(to);
-            if (PARALLELISM > 1) {
+            if (_parallelism > 1) {
                 assertThat(Thread.currentThread()).isNotSameAs(caller);
                 pools.add(ForkJoinTask.getPool());
             } else assertThat(Thread.currentThread()).isSameAs(caller);
@@ -85,22 +85,22 @@ public class IroMiscTest {
             for (int i = from; i < to; i++) visits.incrementAndGet(i);
         });
         for (int i = 0; i < visits.length(); i++) assertThat(visits.get(i)).isEqualTo(1);
-        assertThat(ranges.get()).isEqualTo(Math.min(PARALLELISM, visits.length()));
-        if (PARALLELISM > 1) {
+        assertThat(ranges.get()).isEqualTo(Math.min(_parallelism, visits.length()));
+        if (_parallelism > 1) {
             assertThat(pools).hasSize(1);
             final var pool = pools.iterator().next();
             assertThat(pool).isNotSameAs(ForkJoinPool.commonPool());
-            assertThat(pool.getParallelism()).isEqualTo(PARALLELISM);
-            assertThat(pool.getPoolSize()).isLessThanOrEqualTo(PARALLELISM);
+            assertThat(pool.getParallelism()).isEqualTo(_parallelism);
+            assertThat(pool.getPoolSize()).isLessThanOrEqualTo(_parallelism);
         }
     }
 
     @Test(timeout = 10000)
     public void thresholdSizedScansCanUseTwoWorkersAtOnce() {
-        assumeTrue(PARALLELISM > 1);
+        assumeTrue(_parallelism > 1);
         final var both = new CountDownLatch(2);
         final var threads = ConcurrentHashMap.<Thread> newKeySet();
-        scan(true, 2, PARALLEL_MIN, (from, to) -> {
+        scan(true, 2, _parallelMin, (from, to) -> {
             threads.add(Thread.currentThread());
             both.countDown();
             await(both);
@@ -112,30 +112,30 @@ public class IroMiscTest {
     public void nestedScansCompleteWithoutExpandingThePool() {
         final var sum = new AtomicInteger();
         final var pools = ConcurrentHashMap.<ForkJoinPool> newKeySet();
-        scan(true, 8, PARALLEL_MIN * 8L, (from, to) -> {
+        scan(true, 8, _parallelMin * 8L, (from, to) -> {
             for (int i = from; i < to; i++)
-                scan(true, 101, PARALLEL_MIN * 4L, (lo, hi) -> {
-                    if (PARALLELISM > 1) pools.add(ForkJoinTask.getPool());
+                scan(true, 101, _parallelMin * 4L, (lo, hi) -> {
+                    if (_parallelism > 1) pools.add(ForkJoinTask.getPool());
                     sum.addAndGet(hi - lo);
                 });
         });
         assertThat(sum.get()).isEqualTo(808);
-        if (PARALLELISM > 1) {
+        if (_parallelism > 1) {
             assertThat(pools).hasSize(1);
-            assertThat(pools.iterator().next().getPoolSize()).isLessThanOrEqualTo(PARALLELISM);
+            assertThat(pools.iterator().next().getPoolSize()).isLessThanOrEqualTo(_parallelism);
         }
     }
 
     /** Returning on the first exception would leave another task writing into the caller's buffer. */
     @Test(timeout = 10000)
     public void aFailureStillWaitsForTheOtherRanges() throws Exception {
-        assumeTrue(PARALLELISM > 1);
+        assumeTrue(_parallelism > 1);
         final var entered = new CountDownLatch(1);
         final var release = new CountDownLatch(1);
         final var finished = new AtomicBoolean();
         final var callers = Executors.newSingleThreadExecutor();
         try {
-            final var future = callers.submit(() -> scan(true, 2, PARALLEL_MIN, (from, to) -> {
+            final var future = callers.submit(() -> scan(true, 2, _parallelMin, (from, to) -> {
                 if (from == 0) {
                     entered.countDown();
                     await(release);
@@ -228,7 +228,7 @@ public class IroMiscTest {
         final var b = pattern(513, 517, false);
         final var expected = colorError(a, b, Background.CHECKERBOARD);
         final double expectedSsim = ssim(a, b);
-        scan(true, 4, PARALLEL_MIN * 4L, (from, to) -> {
+        scan(true, 4, _parallelMin * 4L, (from, to) -> {
             for (int i = from; i < to; i++) {
                 assertThat(colorError(a, b, Background.CHECKERBOARD)).isEqualTo(expected);
                 assertThat(ssim(a, b)).isEqualTo(expectedSsim);
@@ -257,7 +257,7 @@ public class IroMiscTest {
     /** Manual timing only; run the test class main on the same JVM to compare serial/parallel work. */
     static void main(final String[] args) {
         final var src = pattern(3001, 2003, true);
-        System.out.printf("workers=%d, threshold=%d pixels%n", PARALLELISM, PARALLEL_MIN);
+        System.out.printf("workers=%d, threshold=%d pixels%n", _parallelism, _parallelMin);
         final var reduced = IroResize.resize(src, 1001, 701, false);
         for (final boolean parallel: new boolean[] { false, true }) {
             benchmark("resize parallel=" + parallel, () -> IroResize.resize(src, 1001, 701, parallel));

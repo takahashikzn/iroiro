@@ -22,7 +22,6 @@ import java.awt.image.ImageObserver;
 import java.awt.image.Kernel;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.RecursiveAction;
@@ -49,12 +48,23 @@ public final class IroMisc {
     private IroMisc() { }
 
     /** Below 256K pixels, run one full-range scan on the calling thread. */
-    public static final int PARALLEL_MIN =
-        Optional.ofNullable(System.getProperty(IroMisc.class.getName() + ".parallelMin")).stream().map(Integer::parseInt).findAny().orElse(1 << 18);
+    static int _parallelMin = 1 << 18;
 
-    public static final int PARALLELISM =
-        Optional.ofNullable(System.getProperty(IroMisc.class.getName() + ".parallelism")).stream().map(Integer::parseInt).findAny()
-            .orElseGet(() -> Math.max(1, Runtime.getRuntime().availableProcessors()));
+    public static int parallelMin() { return _parallelMin; }
+
+    public static void parallelMin(final int val) {
+        if (val <= 0) throw new IllegalArgumentException("positive value required");
+        _parallelMin = val;
+    }
+
+    static int _parallelism = Math.max(1, Runtime.getRuntime().availableProcessors());
+
+    public static int parallelism() { return _parallelism; }
+
+    public static void parallelism(final int val) {
+        if (val <= 0) throw new IllegalArgumentException("positive value required");
+        _parallelism = val;
+    }
 
     /** Lazy: small images and serial callers do not need to initialize the pool. */
     private static final class Workers {
@@ -66,14 +76,14 @@ public final class IroMisc {
         // Deliberately not the common pool: callers are typically a bounded pool of platform threads
         // rather than common pool workers, so a parallel stream adds each caller on top of the pool
         // for every image in flight. Here the caller only waits, and the pool is the whole budget.
-        static final ForkJoinPool POOL = new ForkJoinPool(PARALLELISM, pool -> {
+        static final ForkJoinPool POOL = new ForkJoinPool(_parallelism, pool -> {
             final var worker = ForkJoinPool.defaultForkJoinWorkerThreadFactory.newThread(pool);
             worker.setName("iro-worker-" + seq.incrementAndGet());
             // Workers are started by whichever thread submits work at the time and would otherwise
             // inherit its priority for good, while they serve every caller.
             worker.setPriority(Thread.NORM_PRIORITY);
             return worker;
-        }, null, false, PARALLELISM, PARALLELISM, 1, pool -> true, 60, TimeUnit.SECONDS);
+        }, null, false, _parallelism, _parallelism, 1, pool -> true, 60, TimeUnit.SECONDS);
     }
 
     @FunctionalInterface
@@ -97,12 +107,12 @@ public final class IroMisc {
         Objects.requireNonNull(body, "body");
         if (size < 0 || pixels < 0) throw new IllegalArgumentException("negative scan size");
         if (size == 0) return;
-        if (!parallel || size < 2 || pixels < PARALLEL_MIN || PARALLELISM < 2) {
+        if (!parallel || size < 2 || pixels < _parallelMin || _parallelism < 2) {
             body.run(0, size);
             return;
         }
 
-        final int parts = Math.min(size, Math.clamp(1 + (pixels - 1) / PARALLEL_MIN, 2, PARALLELISM));
+        final int parts = Math.min(size, Math.clamp(1 + (pixels - 1) / _parallelMin, 2, _parallelism));
         final var batch = new RecursiveAction() {
 
             @Override
@@ -147,9 +157,7 @@ public final class IroMisc {
     // ------------------------------------------------------------------------ pixels
 
     /** ARGB of every pixel, row by row. Always a copy, never the image's own backing store. */
-    public static int[] pixels(final BufferedImage image) {
-        return image.getRGB(0, 0, image.getWidth(), image.getHeight(), null, 0, image.getWidth());
-    }
+    public static int[] pixels(final BufferedImage image) { return image.getRGB(0, 0, image.getWidth(), image.getHeight(), null, 0, image.getWidth()); }
 
     public static boolean isBinary(final BufferedImage img) {
         return img.getType() == BufferedImage.TYPE_BYTE_BINARY && img.getColorModel().getPixelSize() == 1;

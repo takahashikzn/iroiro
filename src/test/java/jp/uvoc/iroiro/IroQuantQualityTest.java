@@ -249,10 +249,10 @@ public class IroQuantQualityTest {
             initial[2] = 2; // a duplicate centroid must still choose the lowest palette index
             for (final boolean parallel: new boolean[] { false, true }) {
                 final var map = initial.clone();
-                assign.invoke(null, ch, count, map, colors, first, centers[0], centers[1], centers[2], centers[3], parallel, PARALLEL_MIN * 2);
+                assign.invoke(null, ch, count, map, colors, first, centers[0], centers[1], centers[2], centers[3], parallel, _parallelMin * 2);
                 assertThat(map).isEqualTo(expected);
                 assertThat(
-                    assign.invoke(null, ch, count, map, colors, first, centers[0], centers[1], centers[2], centers[3], parallel, PARALLEL_MIN * 2)).isEqualTo(
+                    assign.invoke(null, ch, count, map, colors, first, centers[0], centers[1], centers[2], centers[3], parallel, _parallelMin * 2)).isEqualTo(
                     false);
             }
         }
