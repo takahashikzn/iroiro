@@ -39,6 +39,7 @@ public final class IroHalftone {
     /**
      * Dither a gray image. The levels are read with {@code getRGB}, i.e. through the image's own
      * color model; for {@link BufferedImage#TYPE_BYTE_GRAY} that includes its linear-to-sRGB curve.
+     * {@link IroGray#grayRGB} gives levels that read back unchanged.
      */
     public static BufferedImage dither(final BufferedImage gray, final Algorithm algo) {
 
@@ -77,7 +78,7 @@ public final class IroHalftone {
                     int bits = 0;
                     for (int i = 0; i < 8 && x + i < w; i++) {
                         final int p = src[srcOff + x + i];
-                        if (level <= luminance(p >>> 16 & 0xFF, p >>> 8 & 0xFF, p & 0xFF)) bits |= 1 << (7 - i);
+                        if (level <= IroGray.luminance(p >>> 16 & 0xFF, p >>> 8 & 0xFF, p & 0xFF)) bits |= 1 << (7 - i);
                     }
                     dst[dstOff + (x >>> 3)] = (byte) bits;
                 }
@@ -86,9 +87,6 @@ public final class IroHalftone {
 
         return out;
     }
-
-    /** Rec. 709 in 8-bit fixed point. */
-    private static int luminance(final int r, final int g, final int b) { return (r * 54 + g * 183 + b * 18) >> 8; }
 
     // ------------------------------------------------------------ ordered dithering
 

@@ -125,15 +125,15 @@ public final class IroAlpha {
 
     public static byte[] createBinaryMask(final BufferedImage img) { return createBinaryMask(img, MASK_ALPHA_THRESHOLD); }
 
-    public static byte[] createBinaryMask(final BufferedImage img, final int threshold) {
-        return createBinaryMask(pixels(img), img.getWidth(), img.getHeight(), threshold);
-    }
-
     /**
      * One bit per pixel, MSB first, each row padded to a byte: set where alpha reaches
      * {@code alphaThreshold}. The layout of a 1-bit mask image.
      */
-    public static byte[] createBinaryMask(final int[] argb, final int w, final int h, final int alphaThreshold) {
+    public static byte[] createBinaryMask(final BufferedImage img, final int threshold) {
+        return createBinaryMask(pixels(img), img.getWidth(), img.getHeight(), threshold);
+    }
+
+    static byte[] createBinaryMask(final int[] argb, final int w, final int h, final int alphaThreshold) {
 
         final int rowBytes = (w + 7) >>> 3;
         final var out = new byte[rowBytes * h];
@@ -175,10 +175,10 @@ public final class IroAlpha {
         return out;
     }
 
+    /** The alpha channel as an 8-bit gray image. */
     public static BufferedImage createAlphaMask(final BufferedImage img) { return createAlphaMask(pixels(img), img.getWidth(), img.getHeight()); }
 
-    /** The alpha channel as an 8-bit gray image. */
-    public static BufferedImage createAlphaMask(final int[] argb, final int w, final int h) {
+    static BufferedImage createAlphaMask(final int[] argb, final int w, final int h) {
 
         final var out = new BufferedImage(w, h, BufferedImage.TYPE_BYTE_GRAY);
         final var dst = ((DataBufferByte) out.getRaster().getDataBuffer()).getData();

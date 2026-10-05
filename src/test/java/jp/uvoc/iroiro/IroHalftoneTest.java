@@ -62,7 +62,7 @@ public class IroHalftoneTest {
         for (int y = 0; y < 3; y++)
             for (int x = 0; x < width; x++) {
                 final int p = src.getRGB(x, y);
-                final boolean white = 128 <= ((p >>> 16 & 0xFF) * 54 + (p >>> 8 & 0xFF) * 183 + (p & 0xFF) * 18) >> 8;
+                final boolean white = 128 <= IroGray.luminance(p >>> 16 & 0xFF, p >>> 8 & 0xFF, p & 0xFF);
                 assertThat(out.getRGB(x, y) == 0xFFFFFFFF).as("(%d, %d)", x, y).isEqualTo(white);
             }
     }
