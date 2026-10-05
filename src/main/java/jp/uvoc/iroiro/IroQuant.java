@@ -282,13 +282,7 @@ public final class IroQuant {
     /** Reduce the colors and write a palette PNG. */
     public static byte[] encode(final BufferedImage img) { return encode(img, opts); }
 
-    public static byte[] encode(final BufferedImage img, final Opts o) {
-
-        final int w = img.getWidth();
-        final int h = img.getHeight();
-
-        return encode(argb(img), w, h, o);
-    }
+    public static byte[] encode(final BufferedImage img, final Opts o) { return encode(argb(img), img.getWidth(), img.getHeight(), o); }
 
     /**
      * Extract the pixels as ARGB, reading the raster directly for the types ImageIO and Java2D
