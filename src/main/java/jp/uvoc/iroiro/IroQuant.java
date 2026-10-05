@@ -1124,6 +1124,9 @@ public final class IroQuant {
      * changes a visible pixel's weight. The weight falls off with it as {@code 1 / (1 + (d / DETAIL)^2)}.
      * A flat area that runs up against an edge bands along it, so each weight finally takes the
      * smallest of its 3x3 neighborhood: the pixels next to an edge count as detail too.
+     * <p>
+     * The importance weighting draws on prior work in perceptually weighted color quantization;
+     * the implementation is independent.
      *
      * @param strength how much heavier a flat pixel counts than one in detail
      */
