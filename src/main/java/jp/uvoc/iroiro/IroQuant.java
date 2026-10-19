@@ -484,7 +484,7 @@ public final class IroQuant {
      *
      * @return the number of palette entries
      */
-    private static int reduce(final double[][] ch, final int[] cnt, final int nb, final int[] map, final Opts o, final int transparent, final int pixels) {
+    private static int reduce(final double[][] ch, final long[] cnt, final int nb, final int[] map, final Opts o, final int transparent, final int pixels) {
 
         final int first = transparent < 0 ? 0 : 1;
         final var ord = new int[nb - first];
@@ -565,7 +565,7 @@ public final class IroQuant {
      * The gain is wL*wR/wT * |meanL-meanR|^2, so no squared moments or repeated sorts are needed.
      * Ranking boxes by this gain spends each palette entry where it actually reduces the error.
      */
-    private static _Box box(final int[] ord, final int lo, final int hi, final double[][] ch, final int[] cnt) {
+    private static _Box box(final int[] ord, final int lo, final int hi, final double[][] ch, final long[] cnt) {
 
         final var ret = new _Box();
         ret.lo = lo;
@@ -657,7 +657,7 @@ public final class IroQuant {
         return cut;
     }
 
-    private static void centroid(final int lo, final int hi, final int[] ord, final double[][] ch, final int[] cnt, final int i, //
+    private static void centroid(final int lo, final int hi, final int[] ord, final double[][] ch, final long[] cnt, final int i, //
         final double[] cr, final double[] cg, final double[] cb, final double[] ca) {
 
         double w = 0;
@@ -759,7 +759,7 @@ public final class IroQuant {
         return changed.get();
     }
 
-    private static void recentroid(final double[][] ch, final int[] cnt, final int nb, final int[] map, final int nbox, //
+    private static void recentroid(final double[][] ch, final long[] cnt, final int nb, final int[] map, final int nbox, //
         final double[] cr, final double[] cg, final double[] cb, final double[] ca) {
 
         final var w = new double[nbox];
@@ -976,7 +976,7 @@ public final class IroQuant {
 
         int n;
 
-        int[] cnt;
+        long[] cnt;
 
         long[] sr;
 
@@ -1016,7 +1016,7 @@ public final class IroQuant {
         h.hmask = 1023;
         h.hkey = new int[1024];
         h.hval = new int[1024];
-        h.cnt = new int[512];
+        h.cnt = new long[512];
         h.sr = new long[512];
         h.sg = new long[512];
         h.sb = new long[512];
