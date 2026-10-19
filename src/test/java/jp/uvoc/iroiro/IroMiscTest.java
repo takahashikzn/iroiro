@@ -32,10 +32,12 @@ import java.util.concurrent.atomic.AtomicIntegerArray;
 import static jp.uvoc.iroiro.IroMeasure.*;
 import static jp.uvoc.iroiro.IroMisc.*;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import static org.assertj.core.api.Assertions.*;
-import static org.junit.Assume.assumeTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.junit.jupiter.api.Timeout.ThreadMode.SEPARATE_THREAD;
 
 
 /** Execution policy, concurrent image pipelines, and contracts for the quality measures in {@link IroMeasure}. */
@@ -95,7 +97,8 @@ public class IroMiscTest {
         }
     }
 
-    @Test(timeout = 10000)
+    @Test
+    @Timeout(value = 10, threadMode = SEPARATE_THREAD)
     public void thresholdSizedScansCanUseTwoWorkersAtOnce() {
         assumeTrue(_parallelism > 1);
         final var both = new CountDownLatch(2);
@@ -108,7 +111,8 @@ public class IroMiscTest {
         assertThat(threads).hasSize(2);
     }
 
-    @Test(timeout = 15000)
+    @Test
+    @Timeout(value = 15, threadMode = SEPARATE_THREAD)
     public void nestedScansCompleteWithoutExpandingThePool() {
         final var sum = new AtomicInteger();
         final var pools = ConcurrentHashMap.<ForkJoinPool> newKeySet();
@@ -127,7 +131,8 @@ public class IroMiscTest {
     }
 
     /** Returning on the first exception would leave another task writing into the caller's buffer. */
-    @Test(timeout = 10000)
+    @Test
+    @Timeout(value = 10, threadMode = SEPARATE_THREAD)
     public void aFailureStillWaitsForTheOtherRanges() throws Exception {
         assumeTrue(_parallelism > 1);
         final var entered = new CountDownLatch(1);
@@ -154,7 +159,8 @@ public class IroMiscTest {
     }
 
     /** Several callers share the pool across both tools; output must equal the complete serial pipeline. */
-    @Test(timeout = 30000)
+    @Test
+    @Timeout(value = 30, threadMode = SEPARATE_THREAD)
     public void concurrentResizeAndQuantizePipelinesMatchSerial() throws Exception {
         final var sources = new BufferedImage[] { pattern(1025, 769, false), pattern(1025, 769, true) };
         final var resized = new BufferedImage[2];
@@ -222,7 +228,8 @@ public class IroMiscTest {
         for (final var background: Background.values()) assertThat(colorError(a, b, background).max()).isZero();
     }
 
-    @Test(timeout = 15000)
+    @Test
+    @Timeout(value = 15, threadMode = SEPARATE_THREAD)
     public void qualityMeasuresAreDeterministicInsideNestedScans() {
         final var a = pattern(513, 517, true);
         final var b = pattern(513, 517, false);

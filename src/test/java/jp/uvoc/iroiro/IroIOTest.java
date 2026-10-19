@@ -19,7 +19,7 @@ import java.io.ByteArrayOutputStream;
 import java.util.Map;
 import javax.imageio.ImageIO;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

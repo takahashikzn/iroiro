@@ -21,10 +21,9 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import javax.imageio.ImageIO;
 
-import junitparams.JUnitParamsRunner;
-import junitparams.Parameters;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import static org.assertj.core.api.Assertions.*;
 
@@ -39,14 +38,13 @@ import static org.assertj.core.api.Assertions.*;
  *
  * @author takahashikzn
  */
-@RunWith(JUnitParamsRunner.class)
 public class IroResizeTest {
 
     // ---------------------------------------------------------------------- contract
 
     /** The target is exact. Callers place the result by these numbers, so an off-by-one moves layout. */
-    @Test
-    @Parameters({ "640, 480, 320, 240", "640, 480, 100, 100", "640, 480, 1, 1", "37, 19, 640, 480", "640, 480, 641, 481" })
+    @ParameterizedTest
+    @CsvSource({ "640, 480, 320, 240", "640, 480, 100, 100", "640, 480, 1, 1", "37, 19, 640, 480", "640, 480, 641, 481" })
     public void theTargetSizeIsExact(final int sw, final int sh, final int dw, final int dh) {
 
         final var out = IroResize.resize(photo(sw, sh), dw, dh);
@@ -79,8 +77,8 @@ public class IroResizeTest {
      * A flat field must stay flat. Box shrink and Mitchell both average, so any indexing mistake in
      * either shows up here as edges or streaks that were never in the source.
      */
-    @Test
-    @Parameters({ "600, 400, 200, 133", "600, 400, 97, 61", "600, 400, 599, 399" })
+    @ParameterizedTest
+    @CsvSource({ "600, 400, 200, 133", "600, 400, 97, 61", "600, 400, 599, 399" })
     public void aFlatFieldSurvivesUnchanged(final int sw, final int sh, final int dw, final int dh) {
 
         final var src = new BufferedImage(sw, sh, BufferedImage.TYPE_INT_RGB);
@@ -124,8 +122,8 @@ public class IroResizeTest {
     }
 
     /** Every raster type ImageIO and Java2D actually produce, to catch a band order taken on faith. */
-    @Test
-    @Parameters({ "1", "2", "5", "6", "10", "13" })
+    @ParameterizedTest
+    @CsvSource({ "1", "2", "5", "6", "10", "13" })
     public void everyRasterTypeIsResampled(final int type) {
 
         final var src = new BufferedImage(200, 150, type);
@@ -142,8 +140,8 @@ public class IroResizeTest {
     // ------------------------------------------------------------------- from bytes
 
     /** Every band starts with its own Mitchell halo, including upscaling and uneven box shrinking. */
-    @Test
-    @Parameters({ "1201, 803, 311, 201", "37, 19, 641, 479", "2049, 1537, 83, 61", "1025, 769, 513, 517" })
+    @ParameterizedTest
+    @CsvSource({ "1201, 803, 311, 201", "37, 19, 641, 479", "2049, 1537, 83, 61", "1025, 769, 513, 517" })
     public void parallelMatchesSerial(final int sw, final int sh, final int dw, final int dh) {
 
         final var src = photo(sw, sh);
@@ -152,8 +150,8 @@ public class IroResizeTest {
         assertThat(IroMisc.pixels(parallel)).isEqualTo(IroMisc.pixels(serial));
     }
 
-    @Test
-    @Parameters({ "1", "2", "5", "6", "7", "10", "13" })
+    @ParameterizedTest
+    @CsvSource({ "1", "2", "5", "6", "7", "10", "13" })
     public void parallelRasterReadersMatchSerial(final int type) {
 
         final var src = new BufferedImage(901, 703, type);
@@ -166,16 +164,16 @@ public class IroResizeTest {
         assertThat(IroMisc.pixels(IroResize.resize(src, 413, 307, true))).isEqualTo(IroMisc.pixels(IroResize.resize(src, 413, 307, false)));
     }
 
-    @Test
-    @Parameters({ "png", "jpeg" })
+    @ParameterizedTest
+    @CsvSource({ "png", "jpeg" })
     public void parallelSubsampledDecodeMatchesSerial(final String format) throws IOException {
 
         final var bytes = encode(photo(2003, 1507), format);
         assertThat(IroMisc.pixels(IroResize.resize(bytes, 501, 377, true))).isEqualTo(IroMisc.pixels(IroResize.resize(bytes, 501, 377, false)));
     }
 
-    @Test
-    @Parameters({ "png", "jpeg" })
+    @ParameterizedTest
+    @CsvSource({ "png", "jpeg" })
     public void resizingFromBytesGivesTheSameSizeAsFromAnImage(final String format) throws IOException {
 
         final var bytes = encode(photo(1200, 900), format);

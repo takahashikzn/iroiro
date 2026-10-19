@@ -29,10 +29,10 @@ import javax.imageio.ImageIO;
 import static jp.uvoc.iroiro.IroMeasure.maxError;
 import static jp.uvoc.iroiro.IroMisc.pixels;
 
-import junitparams.JUnitParamsRunner;
-import junitparams.Parameters;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import static org.assertj.core.api.Assertions.*;
 
@@ -47,7 +47,6 @@ import static org.assertj.core.api.Assertions.*;
  *
  * @author takahashikzn
  */
-@RunWith(JUnitParamsRunner.class)
 public class IroQuantTest {
 
     // ---------------------------------------------------------------- losslessness
@@ -57,8 +56,8 @@ public class IroQuantTest {
      * charts, logos, rules, screenshots - nearly all land here, so this is the path whose breakage
      * would reach furthest.
      */
-    @Test
-    @Parameters(method = "losslessCases")
+    @ParameterizedTest
+    @MethodSource("losslessCases")
     public void lossless(final String name, final BufferedImage src) throws Exception {
 
         final var out = decode(IroQuant.encode(src));
@@ -68,8 +67,7 @@ public class IroQuantTest {
         assertThat(maxError(src, out)).as(name + ": should be lossless").isZero();
     }
 
-    @SuppressWarnings("unused")
-    private Object[] losslessCases() {
+    private static Object[] losslessCases() {
         return new Object[] { //
             new Object[] { "8 colors", flat(200, 150, 8) }, //
             new Object[] { "2 colors", flat(64, 64, 2) }, //
@@ -95,14 +93,13 @@ public class IroQuantTest {
      * order taken on faith. Sub-images are in the list because their raster carries an offset the
      * fast path must not assume away.
      */
-    @Test
-    @Parameters(method = "rasterTypes")
+    @ParameterizedTest
+    @MethodSource("rasterTypes")
     public void rasterTypes(final String name, final BufferedImage src) throws Exception {
         assertThat(maxError(src, decode(IroQuant.encode(src)))).as(name).isZero();
     }
 
-    @SuppressWarnings("unused")
-    private Object[] rasterTypes() {
+    private static Object[] rasterTypes() {
 
         final var base = flat(120, 80, 6);
 
@@ -160,8 +157,8 @@ public class IroQuantTest {
     // ------------------------------------------------------------------ output shape
 
     /** Drop the bit depth when the palette is small, or a palette image carries padding for nothing. */
-    @Test
-    @Parameters({ "2, 1", "4, 2", "16, 4", "17, 8", "200, 8" })
+    @ParameterizedTest
+    @CsvSource({ "2, 1", "4, 2", "16, 4", "17, 8", "200, 8" })
     public void bitDepth(final int colors, final int expected) throws Exception {
         assertThat(IroQuant.encode(flat(64, 64, colors))[24]).as(colors + " colors").isEqualTo((byte) expected);
     }
@@ -205,8 +202,8 @@ public class IroQuantTest {
     }
 
     /** Row packing must restart at byte boundaries, even when the width is not byte-aligned. */
-    @Test
-    @Parameters({ "2", "4", "16", "256" })
+    @ParameterizedTest
+    @CsvSource({ "2", "4", "16", "256" })
     public void parallelPackedRowsMatchSerial(final int colors) throws Exception {
 
         final var src = flat(1027, 513, colors);
@@ -216,8 +213,8 @@ public class IroQuantTest {
     }
 
     /** A filter's previous row must be the original row above a band, never a row of zeros. */
-    @Test
-    @Parameters({ "false", "true" })
+    @ParameterizedTest
+    @CsvSource({ "false", "true" })
     public void parallelTruecolorFiltersMatchSerial(final boolean alpha) throws Exception {
 
         final var src = noise(1027, 513);
@@ -257,8 +254,8 @@ public class IroQuantTest {
     }
 
     /** {@code width * height} in int wraps, and a wrapped count passes a length check it should fail. */
-    @Test
-    @Parameters({ "65536, 65536", "46341, 46341", "2147483647, 2" })
+    @ParameterizedTest
+    @CsvSource({ "65536, 65536", "46341, 46341", "2147483647, 2" })
     public void rejectsOverflowingDimensions(final int width, final int height) {
 
         assertThatIllegalArgumentException() //

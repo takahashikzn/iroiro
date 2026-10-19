@@ -17,7 +17,7 @@ import java.awt.image.BufferedImage;
 
 import jp.uvoc.iroiro.IroLayout.Alignment;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

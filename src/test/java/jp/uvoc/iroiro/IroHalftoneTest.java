@@ -18,10 +18,9 @@ import java.util.Random;
 
 import jp.uvoc.iroiro.IroHalftone.Algorithm;
 
-import junitparams.JUnitParamsRunner;
-import junitparams.Parameters;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -29,15 +28,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * @author takahashikzn
  */
-@RunWith(JUnitParamsRunner.class)
 public class IroHalftoneTest {
 
     /**
      * An 8x8 screen holds each of its 64 levels exactly once, so a uniform gray lights one more cell
      * per step of 4. A matrix with uneven levels reproduces some tones too light and others too dark.
      */
-    @Test
-    @Parameters({ "BAYER", "CLUSTERED" })
+    @ParameterizedTest
+    @CsvSource({ "BAYER", "CLUSTERED" })
     public void screensReproduceEveryLevelEvenly(final Algorithm algo) {
 
         for (int gray = 0; gray < 256; gray++) {
@@ -49,8 +47,8 @@ public class IroHalftoneTest {
     }
 
     /** Each output byte takes its own 8 pixels, also when the width is not a multiple of 8. */
-    @Test
-    @Parameters({ "1", "7", "9", "37", "100" })
+    @ParameterizedTest
+    @CsvSource({ "1", "7", "9", "37", "100" })
     public void thresholdPacksEachPixelIntoItsOwnBit(final int width) {
 
         final var rnd = new Random(width);

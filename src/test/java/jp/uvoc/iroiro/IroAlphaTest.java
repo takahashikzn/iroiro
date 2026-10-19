@@ -16,7 +16,7 @@ package jp.uvoc.iroiro;
 import java.awt.Color;
 import java.awt.image.BufferedImage;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.*;
 

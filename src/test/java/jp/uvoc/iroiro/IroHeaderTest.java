@@ -20,10 +20,10 @@ import java.io.IOException;
 import java.util.Random;
 import javax.imageio.ImageIO;
 
-import junitparams.JUnitParamsRunner;
-import junitparams.Parameters;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -38,7 +38,6 @@ import static org.assertj.core.api.Assertions.assertThat;
  *
  * @author takahashikzn
  */
-@RunWith(JUnitParamsRunner.class)
 public class IroHeaderTest {
 
     // ------------------------------------------------------------------- agreement
@@ -48,8 +47,8 @@ public class IroHeaderTest {
      * ImageIO so the fixture is whatever this JDK actually produces, rather than a file that
      * happens to be shaped the way the parser expects.
      */
-    @Test
-    @Parameters({ "png", "jpeg", "gif", "bmp" })
+    @ParameterizedTest
+    @CsvSource({ "png", "jpeg", "gif", "bmp" })
     public void agreesWithTheDecoder(final String format) throws IOException {
 
         for (final var img: new BufferedImage[] { rgb(37, 19), rgb(1, 1), rgb(640, 480), rgb(1920, 1) }) {
@@ -80,15 +79,14 @@ public class IroHeaderTest {
      * An unknown format has to come back empty rather than guessed at: the caller answers an empty
      * by asking a real decoder, and a wrong size would instead be believed.
      */
-    @Test
-    @Parameters(method = "notImages")
+    @ParameterizedTest
+    @MethodSource("notImages")
     public void unknownBytesAreNotGuessedAt(final String what, final byte[] bytes) {
 
         assertThat(IroHeader.size(bytes)).as(what).isEmpty();
     }
 
-    @SuppressWarnings("unused")
-    private Object[] notImages() {
+    private static Object[] notImages() {
 
         return new Object[] { //
             new Object[] { "empty", new byte[0] }, //

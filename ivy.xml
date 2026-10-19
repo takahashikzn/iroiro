@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE ivy-module [
   <!ENTITY test_conf "test->master(*)">
+  <!ENTITY junit5_version "6.1.3">
   ]>
 <!--
   Copyright 2026 takahashikzn
@@ -35,11 +36,17 @@
   <!-- The library itself depends on the JDK only. Everything here is for the tests. -->
   <dependencies>
 
-    <dependency org="junit" name="junit" rev="4.13.2" conf="&test_conf;" />
-    <dependency org="org.hamcrest" name="hamcrest" rev="3.0" conf="&test_conf;" />
+    <dependency org="org.junit.jupiter" name="junit-jupiter-api" rev="&junit5_version;" conf="&test_conf;" />
+    <dependency org="org.junit.jupiter" name="junit-jupiter-params" rev="&junit5_version;" conf="&test_conf;" />
+    <dependency org="org.junit.jupiter" name="junit-jupiter-engine" rev="&junit5_version;" conf="&test_conf;" />
+    <dependency org="org.junit.platform" name="junit-platform-launcher" rev="&junit5_version;" conf="&test_conf;" />
+    <dependency org="org.junit.platform" name="junit-platform-engine" rev="&junit5_version;" conf="&test_conf;" />
+    <dependency org="org.junit.platform" name="junit-platform-commons" rev="&junit5_version;" conf="&test_conf;" />
+
+    <!-- annotations on the JUnit API; javac warns about every use without it -->
+    <dependency org="org.apiguardian" name="apiguardian-api" rev="1.1.2" conf="&test_conf;" />
     <dependency org="org.assertj" name="assertj-core" rev="4.0.0-M1" conf="&test_conf;" />
     <dependency org="org.opentest4j" name="opentest4j" rev="1.3.0" conf="&test_conf;" />
-    <dependency org="pl.pragmatists" name="JUnitParams" rev="1.1.1" conf="&test_conf;" />
 
   </dependencies>
 
