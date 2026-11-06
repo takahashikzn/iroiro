@@ -10,6 +10,7 @@ tools whose centerpiece is color reduction.
 | `IroQuant`    | Palette PNG encoder with adaptive color reduction. Images that already fit the palette are encoded losslessly. Applies an embedded ICC profile (`iCCP`) that ImageIO ignores. |
 | `IroResize`   | High-quality downscaling (box shrink + Mitchell), reading the source a row at a time and subsampling the decode so a large image is never held at full size.                  |
 | `IroHeader`   | Pixel dimensions straight from an encoded image's header, including files ImageIO refuses to open.                                                                            |
+| `IroJPEG`     | Operations specific to JPEG, such as settling a file whose JFIF and Adobe markers disagree on YCbCr versus RGB (PDF readers otherwise show it off-color).                     |
 | `IroAlpha`    | Transparency: detecting, flattening, opacity, color keying, compositing, soft and 1-bit masks.                                                                                |
 | `IroLayout`   | Where an image goes on a canvas: joining, aligning in a box, placing at an offset, rotating.                                                                                  |
 | `IroIO`       | Writing through ImageIO with the retries it needs, TIFF, and text metadata (PNG `tEXt`).                                                                                      |
