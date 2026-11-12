@@ -13,9 +13,11 @@
 // limitations under the License.
 package jp.uvoc.iroiro;
 
+import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.lang.System.Logger;
 import java.nio.charset.StandardCharsets;
+import java.util.zip.Adler32;
 import java.util.zip.CRC32;
 import java.util.zip.Deflater;
 import java.util.zip.Inflater;
@@ -23,9 +25,10 @@ import java.util.zip.Inflater;
 
 /**
  * Writes a palette PNG (color type 3). Bypassing ImageIO's PNGWriter is what lets us pick the
- * bit depth and truncate the tRNS chunk ourselves.
+ * bit depth and truncate the tRNS chunk ourselves. {@link #fast} writes a truecolor PNG of an
+ * image as it is, several times faster than that writer.
  */
-final class IroPNG {
+public final class IroPNG {
 
     private static final Logger log = System.getLogger(IroPNG.class.getName());
 
@@ -40,17 +43,148 @@ final class IroPNG {
         final var out = new ByteArrayOutputStream(Math.max(1024, index.length / 2));
         out.writeBytes(SIGNATURE);
 
-        chunk(out, "IHDR", ihdr(width, height, depth, 3));
+        chunk(out, ChunkType.IHDR, ihdr(width, height, depth, 3));
         colorspace(out);
-        chunk(out, "PLTE", plte(palette));
+        chunk(out, ChunkType.PLTE, plte(palette));
 
         final var trns = trns(palette);
-        if (0 < trns.length) chunk(out, "tRNS", trns);
+        if (0 < trns.length) chunk(out, ChunkType.tRNS, trns);
 
-        chunk(out, "IDAT", idat(index, width, height, depth, level, parallel));
-        chunk(out, "IEND", new byte[0]);
+        chunk(out, ChunkType.IDAT, idat(index, width, height, depth, level, parallel));
+        chunk(out, ChunkType.IEND, new byte[0]);
 
         return out.toByteArray();
+    }
+
+    /**
+     * Writes a truecolor PNG (color type 2, or 6 when the image has alpha) of the image as it is.
+     * Every row takes the Up filter and the deflate runs in segments across the worker pool, where
+     * ImageIO's writer tries all five filters on every row and deflates on one thread. Just as
+     * lossless and several times faster; the file comes out about as large for a photograph and
+     * somewhat larger for flat artwork, so it suits an intermediate that is decoded again right away.
+     *
+     * @throws IllegalArgumentException when the scanlines would not fit in one array
+     */
+    public static byte[] fast(final BufferedImage img) {
+
+        final int width = img.getWidth();
+        final int height = img.getHeight();
+        final int bpp = img.getColorModel().hasAlpha() ? 4 : 3;
+        final var size = ((long) width * bpp + 1) * height;
+        if (Integer.MAX_VALUE - 8 < size) throw new IllegalArgumentException("too large for one PNG buffer: " + width + "x" + height);
+
+        img.getRGB(0, 0); // the color model initializes lazily and is not safe to do so from the bands at once
+        final var raw = new byte[(int) size];
+        IroMisc.bands(true, width, height, upScanlines(img, bpp, raw));
+
+        final var out = new ByteArrayOutputStream(raw.length / 3 + 1024);
+        out.writeBytes(SIGNATURE);
+
+        chunk(out, ChunkType.IHDR, ihdr(width, height, 8, (bpp == 4) ? 6 : 2));
+        chunk(out, ChunkType.IDAT, zlib(raw, IroQuant.Opts.DEFLATE));
+        chunk(out, ChunkType.IEND, new byte[0]);
+
+        return out.toByteArray();
+    }
+
+    private static IroMisc.Scan upScanlines(final BufferedImage img, final int bpp, final byte[] raw) {
+
+        final int width = img.getWidth();
+        final int stride = width * bpp;
+        final var direct = img.getType() == BufferedImage.TYPE_INT_ARGB || img.getType() == BufferedImage.TYPE_INT_RGB;
+
+        return (from, to) -> {
+            final var argb = new int[width];
+            var cur = new byte[stride];
+            var prev = new byte[stride];
+            // Up refers to the preceding source row, even at a band's first row.
+            if (from > 0) unpack(row(img, from - 1, direct, argb), bpp, prev);
+
+            for (int y = from; y < to; y++) {
+                unpack(row(img, y, direct, argb), bpp, cur);
+
+                final int dst = y * (stride + 1);
+                raw[dst] = 2; // filter: Up
+                for (int i = 0; i < stride; i++) raw[dst + 1 + i] = (byte) (cur[i] - prev[i]);
+
+                final var swap = prev;
+                prev = cur;
+                cur = swap;
+            }
+        };
+    }
+
+    /** One row as non-premultiplied ARGB. The int rasters hold exactly that (alpha unused for RGB), so they are read as they are. */
+    private static int[] row(final BufferedImage img, final int y, final boolean direct, final int[] buf) {
+        if (direct) img.getRaster().getDataElements(0, y, buf.length, 1, buf);
+        else img.getRGB(0, y, buf.length, 1, buf, 0, buf.length);
+        return buf;
+    }
+
+    private static void unpack(final int[] argb, final int bpp, final byte[] row) {
+        for (int x = 0, at = 0; x < argb.length; x++) {
+            final int c = argb[x];
+            row[at++] = (byte) (c >>> 16);
+            row[at++] = (byte) (c >>> 8);
+            row[at++] = (byte) c;
+            if (bpp == 4) row[at++] = (byte) (c >>> 24);
+        }
+    }
+
+    /** Below this a segment is not worth a task of its own. */
+    private static final int SEGMENT_MIN = 1 << 20;
+
+    private static final int AVAIL_PROCS = Runtime.getRuntime().availableProcessors();
+
+    /**
+     * A zlib stream of {@code raw}, deflated in independent segments on the worker pool. Each
+     * segment but the last ends with a sync flush, so the raw deflate outputs concatenate into one
+     * valid stream; a segment does not see the previous one's window, which costs little at this
+     * size. The checksum still covers the whole input.
+     */
+    private static byte[] zlib(final byte[] raw, final int level) {
+
+        final int parts = Math.clamp(raw.length / SEGMENT_MIN, 1, AVAIL_PROCS);
+        final var segs = new byte[parts][];
+        IroMisc.scan(true, parts, raw.length, (from, to) -> {
+            for (int p = from; p < to; p++) {
+                final int start = (int) ((long) raw.length * p / parts);
+                final int end = (int) ((long) raw.length * (p + 1) / parts);
+                segs[p] = deflateSegment(raw, start, end, level, p == parts - 1);
+            }
+        });
+
+        final var out = new ByteArrayOutputStream(raw.length / 3 + 64);
+        out.write(0x78); // deflate, 32K window
+        out.write(0x01); // no preset dictionary; the header check makes 0x7801 a multiple of 31
+        for (final var s: segs) out.writeBytes(s);
+
+        final var adler = new Adler32();
+        adler.update(raw);
+        final var sum = new byte[4];
+        putInt(sum, 0, (int) adler.getValue());
+        out.writeBytes(sum);
+
+        return out.toByteArray();
+    }
+
+    private static byte[] deflateSegment(final byte[] raw, final int from, final int to, final int level, final boolean last) {
+
+        try (var def = new Deflater(level, true)) {
+            def.setInput(raw, from, to - from);
+
+            final var out = new ByteArrayOutputStream((to - from) / 3 + 64);
+            final var buf = new byte[1024 * 64];
+            if (last) {
+                def.finish();
+                while (!def.finished()) out.write(buf, 0, def.deflate(buf));
+            } else {
+                int n;
+                do out.write(buf, 0, n = def.deflate(buf, 0, buf.length, Deflater.SYNC_FLUSH)); while (n == buf.length);
+            }
+
+            return out.toByteArray();
+        }
     }
 
     /**
@@ -70,10 +204,10 @@ final class IroPNG {
         final var out = new ByteArrayOutputStream(Math.max(1024, index.length));
         out.writeBytes(SIGNATURE);
 
-        chunk(out, "IHDR", ihdr(width, height, 8, alpha ? 6 : 2));
+        chunk(out, ChunkType.IHDR, ihdr(width, height, 8, alpha ? 6 : 2));
         colorspace(out);
-        chunk(out, "IDAT", idatTruecolor(index, palette, width, height, alpha ? 4 : 3, level, parallel));
-        chunk(out, "IEND", new byte[0]);
+        chunk(out, ChunkType.IDAT, idatTruecolor(index, palette, width, height, alpha ? 4 : 3, level, parallel));
+        chunk(out, ChunkType.IEND, new byte[0]);
 
         return out.toByteArray();
     }
@@ -180,11 +314,11 @@ final class IroPNG {
      */
     static void colorspace(final ByteArrayOutputStream out) {
 
-        chunk(out, "sRGB", new byte[] { 0 }); // perceptual
+        chunk(out, ChunkType.sRGB, new byte[] { 0 }); // perceptual
 
         final var g = new byte[4];
         putInt(g, 0, 45455); // 1/2.2, what every writer pairs with sRGB
-        chunk(out, "gAMA", g);
+        chunk(out, ChunkType.gAMA, g);
     }
 
     /** Ceiling on an inflated profile. Real ones are kilobytes; this is already far past any of them. */
@@ -335,13 +469,47 @@ final class IroPNG {
         }
     }
 
-    private static void chunk(final ByteArrayOutputStream out, final String type, final byte[] data) {
+    private enum ChunkType {
+        IHDR, PLTE, IDAT, IEND, tRNS, sRGB, gAMA;
+
+        byte[] bytes() {
+            @SuppressWarnings("PublicStaticArrayField")
+            interface $static {
+
+                byte[] _IHDR = IHDR.name().getBytes(StandardCharsets.US_ASCII);
+
+                byte[] _PLTE = PLTE.name().getBytes(StandardCharsets.US_ASCII);
+
+                byte[] _IDAT = IDAT.name().getBytes(StandardCharsets.US_ASCII);
+
+                byte[] _IEND = IEND.name().getBytes(StandardCharsets.US_ASCII);
+
+                byte[] _tRNS = tRNS.name().getBytes(StandardCharsets.US_ASCII);
+
+                byte[] _sRGB = sRGB.name().getBytes(StandardCharsets.US_ASCII);
+
+                byte[] _gAMA = gAMA.name().getBytes(StandardCharsets.US_ASCII);
+            }
+
+            return switch (this) {
+                case IHDR -> $static._IHDR;
+                case PLTE -> $static._PLTE;
+                case IDAT -> $static._IDAT;
+                case IEND -> $static._IEND;
+                case tRNS -> $static._tRNS;
+                case sRGB -> $static._sRGB;
+                case gAMA -> $static._gAMA;
+            };
+        }
+    }
+
+    private static void chunk(final ByteArrayOutputStream out, final ChunkType type, final byte[] data) {
 
         final var len = new byte[4];
         putInt(len, 0, data.length);
         out.writeBytes(len);
 
-        final var name = type.getBytes(StandardCharsets.US_ASCII);
+        final var name = type.bytes();
         out.writeBytes(name);
         out.writeBytes(data);
 
