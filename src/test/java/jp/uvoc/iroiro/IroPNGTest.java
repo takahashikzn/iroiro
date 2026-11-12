@@ -65,4 +65,22 @@ public class IroPNGTest {
         assertThat(back.getColorModel().hasAlpha()).isEqualTo(img.getColorModel().hasAlpha());
         assertThat(back.getRGB(0, 0, width, height, null, 0, width)).isEqualTo(img.getRGB(0, 0, width, height, null, 0, width));
     }
+
+    /** Any level gives the same pixels back, here for flat artwork across several deflate segments. */
+    @ParameterizedTest
+    @CsvSource({ "1", "4", "9" })
+    public void fastRoundTripsAtLevel(final int level) throws Exception {
+
+        final int width = 1300;
+        final int height = 1100;
+        final var img = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        final var rand = new Random(level);
+        for (int y = 0; y < height; y++)
+            for (int x = 0; x < width; x++) img.setRGB(x, y, ((x / 50 + y / 40) % 7 == 0) ? 0x203080 : 0xFFFFFF);
+        for (int i = 0; i < 500; i++) img.setRGB(rand.nextInt(width), rand.nextInt(height), 0);
+
+        final var back = ImageIO.read(new ByteArrayInputStream(IroPNG.fast(img, level)));
+
+        assertThat(back.getRGB(0, 0, width, height, null, 0, width)).isEqualTo(img.getRGB(0, 0, width, height, null, 0, width));
+    }
 }

@@ -34,6 +34,17 @@ public final class IroPNG {
 
     private IroPNG() { }
 
+    /**
+     * Compression level for the pixels. The point of doing this in process is latency, and
+     * compression was over half the cost of writing a palette PNG, so this sits near the fast
+     * end -- but not at it. Level 1 is a trap on a zlib-ng build, where it gives up about a
+     * quarter of the compression for a few milliseconds; level 2 buys that back almost
+     * entirely. Level 9 is out of the question either way: it costs roughly ten times level 2
+     * for another 15%, and on some inputs its match search degenerates outright (on one test
+     * image: 0.2ms at level 2, 8.5ms at level 9).
+     */
+    public static final int DEFLATE = 2;
+
     private static final byte[] SIGNATURE = { (byte) 0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n' };
 
     static byte[] indexed(final byte[] index, final int[] palette, final int width, final int height, final int level, final boolean parallel) {
@@ -60,12 +71,21 @@ public final class IroPNG {
      * Writes a truecolor PNG (color type 2, or 6 when the image has alpha) of the image as it is.
      * Every row takes the Up filter and the deflate runs in segments across the worker pool, where
      * ImageIO's writer tries all five filters on every row and deflates on one thread. Just as
-     * lossless and several times faster; the file comes out about as large for a photograph and
-     * somewhat larger for flat artwork, so it suits an intermediate that is decoded again right away.
+     * lossless and several times faster; the file comes out a little smaller for a photograph and,
+     * at {@link #DEFLATE}, several times larger for flat artwork, so it suits an intermediate that is
+     * decoded again right away.
      *
      * @throws IllegalArgumentException when the scanlines would not fit in one array
      */
-    public static byte[] fast(final BufferedImage img) {
+    public static byte[] fast(final BufferedImage img) { return fast(img, DEFLATE); }
+
+    /**
+     * {@link #fast(BufferedImage)} at the given zlib level, 1 to 9. From level 4 the lazy match
+     * search kicks in: flat artwork comes out about a quarter the size, for about half again the time.
+     *
+     * @throws IllegalArgumentException when the scanlines would not fit in one array
+     */
+    public static byte[] fast(final BufferedImage img, final int level) {
 
         final int width = img.getWidth();
         final int height = img.getHeight();
@@ -81,7 +101,7 @@ public final class IroPNG {
         out.writeBytes(SIGNATURE);
 
         chunk(out, ChunkType.IHDR, ihdr(width, height, 8, (bpp == 4) ? 6 : 2));
-        chunk(out, ChunkType.IDAT, zlib(raw, IroQuant.Opts.DEFLATE));
+        chunk(out, ChunkType.IDAT, zlib(raw, level));
         chunk(out, ChunkType.IEND, new byte[0]);
 
         return out.toByteArray();

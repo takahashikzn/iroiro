@@ -81,7 +81,7 @@ public final class IroQuant {
      * which is what the eye picks up. Diffusing the error attacks that directly, at the cost of a
      * noticeably larger file -- the fine noise it trades the bands for does not deflate well. Off
      * by default for that reason; worth it where the bands show more than the bytes matter.
-     * @param deflate zlib level, 1 to 9; see {@link #DEFLATE}. Raise it when the bytes matter more
+     * @param deflate zlib level, 1 to 9; see {@link IroPNG#DEFLATE}. Raise it when the bytes matter more
      * than the wait -- when what gets delivered is the file itself rather than a rendering of it.
      * @param parallel split large images' independent passes across the shared image pool. The result
      * is identical either way -- every split is over an independent range -- so this is here to
@@ -90,24 +90,13 @@ public final class IroQuant {
     public record Opts(int maxColors, int kmeans, boolean palettizeLossy, double dither, double importance, int deflate, boolean parallel) {
 
         /**
-         * Compression level for the pixels. The point of doing this in process is latency, and
-         * compression was over half the cost of writing a palette PNG, so this sits near the fast
-         * end -- but not at it. Level 1 is a trap on a zlib-ng build, where it gives up about a
-         * quarter of the compression for a few milliseconds; level 2 buys that back almost
-         * entirely. Level 9 is out of the question either way: it costs roughly ten times level 2
-         * for another 15%, and on some inputs its match search degenerates outright (on one test
-         * image: 0.2ms at level 2, 8.5ms at level 9).
-         */
-        public static final int DEFLATE = 2;
-
-        /**
          * The heaviest weight {@link #importance} may ask for. A weight is held in one signed byte,
          * so {@code 1 + importance} has to stay inside it or the histogram counts go negative.
          */
         public static final int MAX_IMPORTANCE = 126;
 
         /** One k-means pass. It costs buckets * colors, and saturates by about two. */
-        public static final Opts DEFAULT = new Opts(256, 1, true, 0, 3, DEFLATE, true);
+        public static final Opts DEFAULT = new Opts(256, 1, true, 0, 3, IroPNG.DEFLATE, true);
 
         public Opts {
             // A palette index goes out as one byte, so 256 is the format's ceiling rather than a policy.
